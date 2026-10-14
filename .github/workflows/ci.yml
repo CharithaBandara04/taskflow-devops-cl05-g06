@@ -21,6 +21,24 @@ jobs:
     name: Flask Automated Tests
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: taskflow
+          POSTGRES_PASSWORD: ci_only_test_password
+          POSTGRES_DB: taskflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taskflow -d taskflow_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://taskflow:ci_only_test_password@127.0.0.1:5432/taskflow_test
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
