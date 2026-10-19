@@ -70,6 +70,12 @@ function renderTasks(tasks) {
         editButton.textContent = "Edit";
 
         actions.appendChild(editButton);
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "btn btn-sm btn-outline-danger ms-auto delete-task-btn";
+        deleteButton.dataset.action = "delete";
+        deleteButton.textContent = "Delete";
+        actions.appendChild(deleteButton);
         item.appendChild(actions);
         taskList.appendChild(item);
     }
@@ -144,6 +150,12 @@ taskList.addEventListener("click", async (event) => {
             await loadTasks();
         } else if (button.dataset.action === "edit") {
             await openEditModal(taskId);
+        } else if (button.dataset.action === "delete") {
+            if (!confirm("Delete this task? This cannot be undone.")) {
+                return;
+            }
+            await api(`/tasks/${taskId}`, { method: "DELETE" });
+            await loadTasks();
         }
     } catch (error) {
         alert(`Could not update task: ${error.message}`);
