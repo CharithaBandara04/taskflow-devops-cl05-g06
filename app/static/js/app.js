@@ -1,0 +1,69 @@
+const taskList = document.getElementById("task-list");
+
+// Calls the TaskFlow API and returns the JSON, or throws the API's error message
+async function api(path, options = {}) {
+    const response = await fetch(`/api${path}`, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || `Request failed (${response.status})`);
+    }
+    return data;
+}
+
+function renderTasks(tasks) {
+    taskList.innerHTML = "";
+
+    if (tasks.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "list-group-item text-muted";
+        empty.textContent = "No tasks yet.";
+        taskList.appendChild(empty);
+        return;
+    }
+
+    for (const task of tasks) {
+        const item = document.createElement("li");
+        item.className = "list-group-item";
+        item.dataset.taskId = task.id;
+
+        const title = document.createElement("div");
+        title.className = "fw-semibold task-title";
+        title.textContent = task.title;
+
+        const badge = document.createElement("span");
+        badge.className = task.status === "completed"
+            ? "badge bg-success ms-2 task-status"
+            : "badge bg-secondary ms-2 task-status";
+        badge.textContent = task.status;
+        title.appendChild(badge);
+
+        item.appendChild(title);
+
+        if (task.description) {
+            const description = document.createElement("div");
+            description.className = "text-muted small task-description";
+            description.textContent = task.description;
+            item.appendChild(description);
+        }
+
+        taskList.appendChild(item);
+    }
+}
+
+async function loadTasks() {
+    try {
+        const data = await api("/tasks");
+        renderTasks(data.tasks);
+    } catch (error) {
+        taskList.innerHTML = "";
+        const item = document.createElement("li");
+        item.className = "list-group-item text-danger";
+        item.textContent = `Could not load tasks: ${error.message}`;
+        taskList.appendChild(item);
+    }
+}
+
+loadTasks();
