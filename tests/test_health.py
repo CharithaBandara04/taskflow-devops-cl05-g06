@@ -19,4 +19,7 @@ def test_homepage():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert b"Welcome to TaskFlow" in response.data
+    assert b"<title>TaskFlow</title>" in response.data
+    assert b'id="task-form"' in response.data
+    assert b'id="task-list"' in response.data
+    assert b"js/app.js" in response.data
