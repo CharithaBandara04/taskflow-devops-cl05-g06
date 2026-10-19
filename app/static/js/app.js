@@ -63,6 +63,13 @@ function renderTasks(tasks) {
         toggleButton.textContent = task.status === "completed" ? "Mark pending" : "Mark completed";
         actions.appendChild(toggleButton);
 
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "btn btn-sm btn-outline-primary edit-task-btn";
+        editButton.dataset.action = "edit";
+        editButton.textContent = "Edit";
+
+        actions.appendChild(editButton);
         item.appendChild(actions);
         taskList.appendChild(item);
     }
@@ -119,6 +126,7 @@ taskForm.addEventListener("submit", async (event) => {
         showFormError(error.message);
     }
 });
+
 taskList.addEventListener("click", async (event) => {
     const button = event.target.closest("button[data-action]");
     if (!button) {
@@ -133,9 +141,49 @@ taskList.addEventListener("click", async (event) => {
                 method: "PATCH",
                 body: JSON.stringify({ status: button.dataset.nextStatus }),
             });
+            await loadTasks();
+        } else if (button.dataset.action === "edit") {
+            await openEditModal(taskId);
         }
-        await loadTasks();
     } catch (error) {
         alert(`Could not update task: ${error.message}`);
+    }
+});
+
+const editModal = new bootstrap.Modal(document.getElementById("edit-modal"));
+const editForm = document.getElementById("edit-form");
+const editTaskId = document.getElementById("edit-task-id");
+const editTitle = document.getElementById("edit-title");
+const editDescription = document.getElementById("edit-description");
+const editError = document.getElementById("edit-error");
+
+async function openEditModal(taskId) {
+    const data = await api(`/tasks/${taskId}`);
+    editTaskId.value = data.task.id;
+    editTitle.value = data.task.title;
+    editDescription.value = data.task.description || "";
+    editError.classList.add("d-none");
+    editModal.show();
+}
+
+editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    editError.classList.add("d-none");
+
+    const description = editDescription.value.trim();
+
+    try {
+        await api(`/tasks/${editTaskId.value}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                title: editTitle.value,
+                description: description || null,
+            }),
+        });
+        editModal.hide();
+        await loadTasks();
+    } catch (error) {
+        editError.textContent = error.message;
+        editError.classList.remove("d-none");
     }
 });
