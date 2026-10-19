@@ -67,3 +67,40 @@ async function loadTasks() {
 }
 
 loadTasks();
+
+const taskForm = document.getElementById("task-form");
+const titleInput = document.getElementById("task-title");
+const descriptionInput = document.getElementById("task-description");
+const formError = document.getElementById("form-error");
+
+function showFormError(message) {
+    formError.textContent = message;
+    formError.classList.remove("d-none");
+}
+
+function clearFormError() {
+    formError.textContent = "";
+    formError.classList.add("d-none");
+}
+
+taskForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearFormError();
+
+    const description = descriptionInput.value.trim();
+
+    try {
+        await api("/tasks", {
+            method: "POST",
+            body: JSON.stringify({
+                title: titleInput.value,
+                description: description || null,
+            }),
+        });
+        taskForm.reset();
+        titleInput.focus();
+        await loadTasks();
+    } catch (error) {
+        showFormError(error.message);
+    }
+});
