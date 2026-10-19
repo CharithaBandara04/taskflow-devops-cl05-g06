@@ -48,7 +48,22 @@ function renderTasks(tasks) {
             description.textContent = task.description;
             item.appendChild(description);
         }
+        if (task.status === "completed") {
+            item.classList.add("task-completed");
+        }
 
+        const actions = document.createElement("div");
+        actions.className = "mt-2 d-flex gap-2 task-actions";
+
+        const toggleButton = document.createElement("button");
+        toggleButton.type = "button";
+        toggleButton.className = "btn btn-sm btn-outline-success toggle-status-btn";
+        toggleButton.dataset.action = "toggle";
+        toggleButton.dataset.nextStatus = task.status === "completed" ? "pending" : "completed";
+        toggleButton.textContent = task.status === "completed" ? "Mark pending" : "Mark completed";
+        actions.appendChild(toggleButton);
+
+        item.appendChild(actions);
         taskList.appendChild(item);
     }
 }
@@ -102,5 +117,25 @@ taskForm.addEventListener("submit", async (event) => {
         await loadTasks();
     } catch (error) {
         showFormError(error.message);
+    }
+});
+taskList.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) {
+        return;
+    }
+
+    const taskId = button.closest("li[data-task-id]").dataset.taskId;
+
+    try {
+        if (button.dataset.action === "toggle") {
+            await api(`/tasks/${taskId}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status: button.dataset.nextStatus }),
+            });
+        }
+        await loadTasks();
+    } catch (error) {
+        alert(`Could not update task: ${error.message}`);
     }
 });
