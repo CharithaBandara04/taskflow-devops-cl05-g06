@@ -3,7 +3,8 @@ import click
 
 from flask import Flask
 from app.extensions import db
-
+from prometheus_client import CollectorRegistry
+from prometheus_flask_exporter import PrometheusMetrics
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -39,5 +40,13 @@ def create_app(test_config=None):
 
         click.echo("TaskFlow database tables initialized successfully.")
 
+    # Enable Prometheus monitoring
+    PrometheusMetrics(
+        app,
+        path="/metrics",
+        group_by="url_rule",
+        registry=CollectorRegistry(),
+        excluded_paths=[r"^/metrics$"],
+    )
 
     return app
