@@ -258,3 +258,72 @@ Hiranya
 The backend implementation and database model are ready
 for integration after the backend pull request receives
 the required approval and is merged into develop.
+
+## Database Initialization Command
+
+TaskFlow provides a Flask CLI command to initialize missing
+database tables in a fresh environment.
+
+### Running initialization
+
+Ensure PostgreSQL is running and the DATABASE_URL environment
+variable points to the intended database.
+
+From the project root, run:
+
+    python -m flask --app run init-db
+
+Expected output:
+
+    TaskFlow database tables initialized successfully.
+
+### Verify database tables
+
+For the local development PostgreSQL container:
+
+    docker exec taskflow-pg-dev psql -U taskflow -d taskflow -c "\dt"
+
+The `public.tasks` table should be listed.
+
+### Safe repeated execution
+
+The initialization command uses SQLAlchemy's db.create_all().
+
+- Creates missing database tables.
+- Preserves existing task records.
+- Can be executed repeatedly.
+- Does not modify existing table structures.
+
+### Docker and deployment integration
+
+The deployment process should:
+
+1. Start the PostgreSQL database.
+2. Wait for PostgreSQL to become healthy.
+3. Configure DATABASE_URL for the target environment.
+4. Execute `python -m flask --app run init-db`.
+5. Start the Flask application only after initialization succeeds.
+
+The initialization command is not automatically executed when
+the Flask development server starts.
+
+### Database migrations
+
+db.create_all() does not migrate existing database schemas.
+
+Future changes to database columns or constraints should use
+a migration framework such as Alembic or Flask-Migrate.
+
+### Automated verification
+
+Database initialization is tested in:
+
+    tests/test_init_db.py
+
+Run the initialization tests:
+
+    python -m pytest tests/test_init_db.py -v
+
+The tests verify that:
+- Missing database tables are created successfully.
+- Repeated initialization preserves existing task records.

@@ -1,4 +1,5 @@
 import os
+import click
 
 from flask import Flask
 from app.extensions import db
@@ -29,5 +30,14 @@ def create_app(test_config=None):
     # Register Task API routes
     from app.api import api
     app.register_blueprint(api)
+
+    @app.cli.command("init-db")
+    def init_db_command():
+        """Create missing TaskFlow database tables."""
+        with app.app_context():
+            db.create_all()
+
+        click.echo("TaskFlow database tables initialized successfully.")
+
 
     return app
