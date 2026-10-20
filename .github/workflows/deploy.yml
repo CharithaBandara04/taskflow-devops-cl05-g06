@@ -3,14 +3,24 @@ name: TaskFlow EC2 Deployment
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Full successful GHCR image SHA tag"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: taskflow-production
+  cancel-in-progress: false
+
 jobs:
-  test-ssh:
-    name: Test EC2 SSH Connection
+  deploy:
+    name: Prepare TaskFlow Deployment
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Configure SSH
@@ -25,14 +35,42 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Test SSH connection
+      - name: Validate image tag
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if ! [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected a full 40-character commit SHA"
+            exit 1
+          fi
+
+      - name: Prepare deployment on EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
           ssh -o BatchMode=yes \
               -o StrictHostKeyChecking=yes \
               -o ConnectTimeout=15 \
               -i ~/.ssh/id_ed25519 \
               "$EC2_USER@$EC2_HOST" \
-              "echo 'SSH connection successful'; whoami; hostname"
+              "bash -s -- '$IMAGE_TAG'" <<'REMOTE'
+          set -euo pipefail
+
+          IMAGE_TAG="$1"
+          IMAGE="ghcr.io/charithabandara04/taskflow-devops-cl05-g06:$IMAGE_TAG"
+
+          cd ~/taskflow
+
+          echo "Pulling selected Docker image"
+          sudo docker pull "$IMAGE"
+
+          echo "Checking Docker Compose configuration"
+          sudo docker compose config --quiet
+
+          echo "Checking selected image"
+          sudo IMAGE_TAG="$IMAGE_TAG" docker compose config --images
+
+          echo "Deployment preparation successful"
+          REMOTE
