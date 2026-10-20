@@ -57,5 +57,5 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
-      - name: Run Pytest
-        run: python -m pytest -v
+      - name: Run Backend Pytest
+        run: python -m pytest --ignore=tests/e2e -v
