@@ -1,1 +1,153 @@
 
+name: TaskFlow EC2 Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Full 40-character GHCR image tag"
+        required: true
+        type: string
+
+  workflow_run:
+    workflows: ["TaskFlow CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taskflow-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+    environment: production
+
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository
+      )
+
+    steps:
+      - name: Select Docker image
+        id: image
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_TAG: ${{ inputs.image_tag }}
+          CI_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$MANUAL_TAG"
+          else
+            TAG="$CI_SHA"
+          fi
+
+          if ! [[ "$TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid Docker image tag"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+          chmod 600 ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy with rollback
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          ssh -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=15 \
+              -i ~/.ssh/id_ed25519 \
+              "$EC2_USER@$EC2_HOST" \
+              "bash -s -- '$IMAGE_TAG'" <<'REMOTE'
+          set -euo pipefail
+
+          NEW_TAG="$1"
+          IMAGE_BASE="ghcr.io/charithabandara04/taskflow-devops-cl05-g06"
+
+          cd ~/taskflow
+
+          echo "Checking Docker configuration"
+          sudo docker compose config --quiet
+
+          echo "Reading currently deployed image"
+          OLD_IMAGE=$(sudo docker inspect \
+            --format '{{.Config.Image}}' \
+            "$(sudo docker compose ps -q web)")
+
+          echo "Previous image: $OLD_IMAGE"
+
+          if [[ "$OLD_IMAGE" != "$IMAGE_BASE:"* ]]; then
+            echo "Unexpected current image; stopping"
+            exit 1
+          fi
+
+          OLD_TAG="${OLD_IMAGE##*:}"
+
+          rollback() {
+            echo "Deployment failed. Restoring previous image."
+
+            if sudo IMAGE_TAG="$OLD_TAG" \
+              docker compose up -d --no-deps --force-recreate web; then
+              echo "Previous image restarted"
+            else
+              echo "Rollback failed; manual intervention required"
+            fi
+          }
+
+          echo "Pulling new image"
+          sudo docker pull "$IMAGE_BASE:$NEW_TAG"
+
+          echo "Updating web container"
+          if ! sudo IMAGE_TAG="$NEW_TAG" \
+            docker compose up -d --no-deps --force-recreate web; then
+            rollback
+            exit 1
+          fi
+
+          echo "Checking application health"
+
+          HEALTHY=false
+
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error \
+              --max-time 5 \
+              http://127.0.0.1:80/health >/dev/null; then
+              HEALTHY=true
+              break
+            fi
+
+            sleep 5
+          done
+
+          if [ "$HEALTHY" != "true" ]; then
+            rollback
+            exit 1
+          fi
+
+          echo "Deployment successful"
+          sudo docker compose ps
+          REMOTE
