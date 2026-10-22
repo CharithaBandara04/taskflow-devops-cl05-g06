@@ -1,0 +1,31 @@
+# EC2 overrides: run with
+# docker compose -f docker-compose.yml -f docker-compose.ec2.yml up -d
+services:
+  prometheus:
+    mem_limit: 150m
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2d
+    networks:
+      - default
+      - taskflow
+
+  node-exporter:
+    mem_limit: 30m
+
+  cadvisor:
+    mem_limit: 80m
+    command:
+      - --housekeeping_interval=30s
+      - --docker_only=true
+      - --disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl,process
+
+  grafana:
+    mem_limit: 150m
+
+networks:
+  taskflow:
+    name: taskflow_default
+    external: true
+    
