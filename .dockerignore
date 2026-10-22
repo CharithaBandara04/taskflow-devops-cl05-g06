@@ -1,9 +1,12 @@
 .git
 .github
 .venv
-__pycache__
-*.pyc
-.env
-.env.*
-*.db
+**/__pycache__
+**/*.pyc
+**/.env
+**/.env.*
+**/*.db
+instance/
 .pytest_cache
+monitoring/
+tests/
