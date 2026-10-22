@@ -220,4 +220,4 @@ groups:
               type: threshold
               expression: A
               conditions:
-                - evaluator: { type: ge, params: [3] }
+                - evaluator: { type: gte, params: [3] }
