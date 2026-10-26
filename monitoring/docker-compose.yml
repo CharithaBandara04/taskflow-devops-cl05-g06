@@ -52,6 +52,15 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
     restart: unless-stopped
 
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.26.0
+    container_name: blackbox-exporter
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    restart: unless-stopped
+
 volumes:
   prometheus-data:
   grafana-data:
