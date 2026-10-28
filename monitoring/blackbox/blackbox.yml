@@ -1,0 +1,9 @@
+modules:
+  # Passes only if the URL returns HTTP 200 within 5 seconds
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      
