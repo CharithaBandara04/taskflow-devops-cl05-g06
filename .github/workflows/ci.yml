@@ -136,9 +136,6 @@ jobs:
           echo "Staging did not become healthy"
           exit 1
 
-      - name: Initialise staging database
-        run: docker compose -f compose.staging.yml exec -T web flask --app run init-db
-
       - name: Staging integration smoke test (API to PostgreSQL)
         run: |
           created=$(curl --fail --silent -X POST "$STAGING_URL/api/tasks" \
