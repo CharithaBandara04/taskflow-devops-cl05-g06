@@ -15,7 +15,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: Prometheus could not reach the TaskFlow app on the last check
+          summary: The /health check failed on the last probe
         data:
           - refId: A
             relativeTimeRange: { from: 60, to: 0 }
@@ -23,7 +23,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: up{job="taskflow"}
+              expr: probe_success{job="health"}
           - refId: C
             datasourceUid: __expr__
             model:
@@ -42,7 +42,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: The TaskFlow app has failed 2 checks in a row
+          summary: The /health check has failed 2 probes in a row
         data:
           - refId: A
             relativeTimeRange: { from: 60, to: 0 }
@@ -50,7 +50,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: up{job="taskflow"}
+              expr: probe_success{job="health"}
           - refId: C
             datasourceUid: __expr__
             model:

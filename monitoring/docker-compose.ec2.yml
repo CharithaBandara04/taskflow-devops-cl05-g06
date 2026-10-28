@@ -24,6 +24,12 @@ services:
   grafana:
     mem_limit: 150m
 
+  blackbox-exporter:
+    mem_limit: 30m
+    networks:
+      - default
+      - taskflow
+      
 networks:
   taskflow:
     name: taskflow_default

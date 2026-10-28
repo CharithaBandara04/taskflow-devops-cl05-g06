@@ -10,12 +10,12 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "App status",
-      "description": "Whether Prometheus can scrape the app's /metrics endpoint",
+      "title": "App status (/health)",
+      "description": "Result of the /health check, probed every 15 seconds by the blackbox exporter",
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "expr": "up{job=\"taskflow\"}", "instant": true }
+        { "refId": "A", "expr": "probe_success{job=\"health\"}", "instant": true }
       ],
       "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": {
@@ -140,6 +140,39 @@
         { "refId": "A", "expr": "sum by (name) (container_memory_working_set_bytes{name!=\"\"})", "legendFormat": "{{name}}" }
       ],
       "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Availability (24h)",
+      "description": "Share of /health checks that succeeded over the last 24 hours. Brief target: at least 99%",
+      "gridPos": { "x": 0, "y": 21, "w": 6, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "100 * avg_over_time(probe_success{job=\"health\"}[24h])", "instant": true }
+      ],
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 95 }, { "color": "green", "value": 99 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "/health check response time",
+      "description": "How long each /health probe took to respond",
+      "gridPos": { "x": 6, "y": 21, "w": 18, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "probe_duration_seconds{job=\"health\"}", "legendFormat": "response time" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
     }
   ]
 }
+
