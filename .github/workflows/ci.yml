@@ -58,8 +58,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
-      - name: Run Backend Pytest
-        run: python -m pytest --ignore=tests/e2e -v
+      # Check Python code quality before running tests
+      - name: Check Python code with Ruff
+        run: python -m ruff check app tests
+
+      # Run backend tests and enforce minimum code coverage
+      - name: Run Backend Pytest with coverage
+        run: |
+          python -m pytest --ignore=tests/e2e -v \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-fail-under=70
 
   build:
     name: Build Docker Image
