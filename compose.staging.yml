@@ -1,0 +1,25 @@
+# Isolated staging environment, created and destroyed during each CI run.
+# Uses throwaway credentials that are separate from production.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskflow_staging
+      POSTGRES_PASSWORD: staging_only_password
+      POSTGRES_DB: taskflow_staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow_staging -d taskflow_staging"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ${STAGING_IMAGE:?Set STAGING_IMAGE to the image under test}
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://taskflow_staging:staging_only_password@db:5432/taskflow_staging
+    depends_on:
+      db:
+        condition: service_healthy
+        
