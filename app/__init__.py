@@ -1,10 +1,12 @@
 import os
-import click
 
+import click
 from flask import Flask
-from app.extensions import db
 from prometheus_client import CollectorRegistry
 from prometheus_flask_exporter import PrometheusMetrics
+
+from app.extensions import db
+
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -22,7 +24,7 @@ def create_app(test_config=None):
     db.init_app(app)
 
     # Register database models
-    from app import models
+    from app import models  # noqa: F401
 
     # Register homepage and health routes
     from app.routes import main
