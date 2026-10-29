@@ -18,7 +18,7 @@ services:
   web:
     build: .
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5001:5000"
     environment:
       DATABASE_URL: postgresql+psycopg://taskflow:${POSTGRES_PASSWORD}@db:5432/taskflow
     depends_on:
