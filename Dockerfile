@@ -27,4 +27,4 @@ ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]
 EXPOSE 5000
 
 # Start Gunicorn after database initialization
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run:app"]
+CMD ["gunicorn", "--workers", "3", "--bind", "0.0.0.0:5000", "run:app"]
