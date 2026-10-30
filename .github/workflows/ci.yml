@@ -105,7 +105,7 @@ jobs:
         run: docker save ghcr.io/charithabandara04/taskflow-devops-cl05-g06:${{ github.sha }} | gzip > image.tar.gz
 
       - name: Upload image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskflow-image
           path: image.tar.gz
@@ -187,7 +187,7 @@ jobs:
 
       - name: Upload end-to-end test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-reports
           path: |
